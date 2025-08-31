@@ -1,18 +1,17 @@
 package com.example.demo.service.implementation;
 
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-
 import org.springframework.stereotype.Service;
 
-import com.example.demo.dto.TransactionEvent;
-import com.example.demo.dto.TransactionRequest;
+import com.example.demo.dto.AddMoneyRequest;
 import com.example.demo.dto.TransactionResponse;
+import com.example.demo.dto.TransferRequest;
 import com.example.demo.entity.Transaction;
 import com.example.demo.repo.TransactionRepository;
 import com.example.demo.service.TransactionService;
+import com.example.demo.util.TransferMoneyEventProducer;
 
 import lombok.RequiredArgsConstructor;
 
@@ -21,8 +20,8 @@ import lombok.RequiredArgsConstructor;
 public class TransactionServiceImpl implements TransactionService {
 
     private final TransactionRepository transactionRepository;
+    private final TransferMoneyEventProducer transferMoneyEventProducer;
 
-   
 
     @Override
     public TransactionResponse getTransaction(Long transactionId) {
@@ -39,7 +38,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .toUserId(transaction.getToUserId())
                 .amount(transaction.getAmount())
                 .type(transaction.getType())
-                .status(transaction.getStatus())
+                .status(transaction.getStatus().name())
                 .createdAt(transaction.getCreatedAt())
                 .build();
     }
@@ -78,4 +77,31 @@ public List<TransactionResponse> getTransactionsByUserId(Long userId) {
             .toList();
 }
 
+
+    @Override
+    public TransactionResponse topUp(Long userId, AddMoneyRequest request) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'transferMoney'");
+    }
+
+    @Override
+    public TransactionResponse transferMoney(Long fromUserId, TransferRequest request) {
+        // Step 1: Extract required details from request
+        Long toUserId = request.getToUserId();
+        BigDecimal amount = request.getAmount();
+
+        // Step 2: Call Producer to create transaction + publish event
+        Transaction tx = transferMoneyEventProducer.initiateTransfer(fromUserId, toUserId, amount);
+
+        // Step 3: Prepare and return response (currently transaction is PENDING)
+        return TransactionResponse.builder()
+                .transactionId(tx.getTransactionId())
+                .fromUserId(tx.getFromUserId())
+                .toUserId(tx.getToUserId())
+                .amount(tx.getAmount())
+                .type(tx.getType())
+                .status(tx.getStatus().name())
+                .createdAt(tx.getCreatedAt())
+                .build();
+    }
 }

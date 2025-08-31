@@ -40,7 +40,6 @@ public class User {
 	private String email;
 	@Builder.Default
 	private boolean kycVerified = false;
-	
 
 }
 //username=null

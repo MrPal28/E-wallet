@@ -3,8 +3,12 @@ package com.example.demo.entity;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.example.demo.constants.TransactionStatus;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -28,9 +32,6 @@ public class Transaction {
     @Column(name = "transaction_id")
     private Long transactionId;
 
-    @Column(name = "transfer_id")
-    private Long transferId;
-
     @Column(name = "from_user_id")
     private Long fromUserId;   // null if it's a top-up
 
@@ -43,9 +44,10 @@ public class Transaction {
     @Column(length = 50)
     private String type;          // DEBIT / CREDIT / TRANSFER / TOPUP / WITHDRAWAL
 
-    @Column(length = 50)
-    private String status;        // PENDING / SUCCESS / FAILED
+    @Enumerated(EnumType.STRING)
+    private TransactionStatus status;       // PENDING / SUCCESS / FAILED
 
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    @Builder.Default
+    private LocalDateTime createdAt=LocalDateTime.now();
 }
