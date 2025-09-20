@@ -147,12 +147,12 @@ The system provides core wallet functionalities (account creation, wallet top-up
 * [ ] Deploy on Kubernetes with CI/CD pipelines.
 
 ---
-
+---
 ## 🧑‍💻 Author
 
 👤 **Arindam Pal**
 *Learning microservices, Kafka, Redis, and Docker by building real-world scalable projects.*
-
+---
 ---
 
 ⚠️ **Note:** This project is still in development. Some features (dashboard, external payments, rewards, history, notifications) are not yet implemented but are planned in upcoming releases.
