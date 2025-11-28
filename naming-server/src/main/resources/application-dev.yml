@@ -1,9 +1,9 @@
 server:
-  port: ${SPRING_APPLICATION_PORT}
+  port: ${NAMING_SERVER_PORT}
 
 spring:
   application:
-    name: ${SPRING_APPLICATION_NAME}
+    name: ${SPRING_APPLICATION_NAMING_SERVER_NAME}
 
 eureka:
   client:

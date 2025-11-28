@@ -1,0 +1,59 @@
+server:
+  port: ${GATEWAY_PORT}
+
+spring:
+  application:
+    name: ${SPRING_APPLICATION_GATEWAY_NAME}
+
+  cloud:
+    gateway:
+
+      # ----------------------------
+      # JWT CONFIG
+      # ----------------------------
+      jwt:
+        secret: ${GATEWAY_JWT_SECRET}
+        allowed-skew: ${GATEWAY_JWT_ALLOWED_SKEW:5000}
+
+      # ----------------------------
+      # NEW WEBFLUX ROUTE STRUCTURE
+      # Required for Spring Cloud Gateway 4.x
+      # ----------------------------
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: false
+              lower-case-service-id: true
+
+          routes:
+            user:
+              path: ${GATEWAY_USER_PATH}
+              service-id: ${GATEWAY_USER_SERVICE_ID}
+
+            wallet:
+              path: ${GATEWAY_WALLET_PATH}
+              service-id: ${GATEWAY_WALLET_SERVICE_ID}
+
+            transaction:
+              path: ${GATEWAY_TRANSACTION_PATH}
+              service-id: ${GATEWAY_TRANSACTION_SERVICE_ID}
+
+      # ----------------------------
+      # CORS CONFIG
+      # ----------------------------
+      cors:
+        allowed-origins: ${GATEWAY_ALLOWED_ORIGINS}
+        allowed-methods: ${GATEWAY_ALLOWED_CORS_METHODS}
+        allowed-headers: ${GATEWAY_ALLOWED_CORS_HEADERS}
+        allow-credentials: ${GATEWAY_CORS_ALLOW_CREDENTIALS}
+
+      # ----------------------------
+      # SECURITY CONFIG
+      # ----------------------------
+      security:
+        open-endpoints: ${GATEWAY_OPEN_ENDPOINTS}
+        header:
+          username: ${GATEWAY_HEADER_USERNAME}
+          user-id: ${GATEWAY_HEADER_USER_ID}
+          role: ${GATEWAY_HEADER_ROLE}
