@@ -12,6 +12,7 @@ import java.util.function.Predicate;
 @Component
 public class RouteValidator {
 
+        @SuppressWarnings("unused")
         private final List<String> openEndpoints;
 
         public final Predicate<ServerHttpRequest> isSecured;

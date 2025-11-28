@@ -34,6 +34,7 @@ public class JwtUtil {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private Claims getAllClaims(String token) {
         try {
             return Jwts.parser()

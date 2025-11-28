@@ -34,6 +34,7 @@ public class AuthenticationFilter implements GlobalFilter {
     @Value("${spring.cloud.gateway.security.header.role:x-role}")
     private String roleHeader;
 
+    @SuppressWarnings("null")
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
 
