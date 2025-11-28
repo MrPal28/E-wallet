@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class RouteValidator {
      public static final List<String> list = List.of(
-            "/auth/users/register",
-            "/auth/users/login",
+            "/auth/register",
+            "/auth/login",
             "/eureka"
     );
     public Predicate<ServerHttpRequest> isSecured =

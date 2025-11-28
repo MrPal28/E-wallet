@@ -2,11 +2,9 @@ package com.example.service;
 
 import java.time.LocalDateTime;
 
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.scheduling.annotation.Async;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -28,8 +26,7 @@ import com.example.repository.UserRepository;
 import com.example.util.AuthenticationFacadeImpl;
 import com.example.util.KafkaProducer;
 import com.example.util.Mapper;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 
 import lombok.RequiredArgsConstructor;
 

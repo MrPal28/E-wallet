@@ -1,122 +1,57 @@
 {
-<<<<<<< HEAD
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
   "configurations": [
+    {
+      "type": "java",
+      "name": "Current File",
+      "request": "launch",
+      "mainClass": "${file}"
+    },
     {
       "type": "java",
       "name": "Application",
       "request": "launch",
-      "mainClass": "com.example.demo.Application"
-    },
-    {
-      "type": "java",
-      "name": "Spring Boot-Application<1-naming-server>",
-      "request": "launch",
-      "cwd": "${workspaceFolder}",
-      "mainClass": "com.example.demo.Application",
-      "projectName": "1-naming-server",
-      "args": "",
-      "envFile": "${workspaceFolder}/.env",
-      "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=54811 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=1-naming-server"
-    },
-    {
-      "type": "java",
-      "name": "Spring Boot-Application<5-gate-way>",
-      "request": "launch",
-      "cwd": "${workspaceFolder}",
-      "mainClass": "com.example.demo.Application",
-      "projectName": "5-gate-way",
-      "args": "",
-      "envFile": "${workspaceFolder}/.env",
-      "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=59935 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=5-gate-way"
-    },
-    {
-      "type": "java",
-      "name": "Spring Boot-Application<2-user-service>",
-      "request": "launch",
-      "cwd": "${workspaceFolder}",
       "mainClass": "com.example.Application",
-      "projectName": "2-user-service",
-      "args": "",
-      "envFile": "${workspaceFolder}/.env",
-      "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=59952 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=2-user-service"
+      "projectName": "2-user-service"
     },
     {
       "type": "java",
-      "name": "Spring Boot-Application<3-wallet-service>",
+      "name": "Application(1)",
       "request": "launch",
-      "cwd": "${workspaceFolder}",
       "mainClass": "com.example.demo.Application",
-      "projectName": "3-wallet-service",
-      "args": "",
-      "envFile": "${workspaceFolder}/.env",
-      "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=49863 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=3-wallet-service"
+      "projectName": "3-wallet-service"
     },
     {
       "type": "java",
-      "name": "Spring Boot-Application<4-transaction-service>",
+      "name": "Application(2)",
       "request": "launch",
-      "cwd": "${workspaceFolder}",
       "mainClass": "com.example.demo.Application",
-      "projectName": "4-transaction-service",
-      "args": "",
+      "projectName": "4-transaction-service"
+    },
+    {
+      "type": "java",
+      "name": "Application(3)",
+      "request": "launch",
+      "mainClass": "com.example.demo.Application",
+      "projectName": "5-gate-way"
+    },
+    {
+      "type": "java",
+      "name": "Application(4)",
+      "request": "launch",
+      "mainClass": "com.example.__reward_service.Application",
+      "projectName": "6-reward-service"
+    },
+    {
+      "type": "java",
+      "name": "Application(5)",
+      "request": "launch",
+      "mainClass": "com.wallet.naming.Application",
+      "projectName": "naming-server",
       "envFile": "${workspaceFolder}/.env"
     }
   ]
-=======
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        
-        {
-            "type": "java",
-            "name": "Current File",
-            "request": "launch",
-            "mainClass": "${file}"
-        },
-        {
-            "type": "java",
-            "name": "Application",
-            "request": "launch",
-            "mainClass": "com.example.demo.Application",
-            "projectName": "1-naming-server"
-        },
-        {
-            "type": "java",
-            "name": "Application(1)",
-            "request": "launch",
-            "mainClass": "com.example.Application",
-            "projectName": "2-user-service"
-        },
-        {
-            "type": "java",
-            "name": "Application(2)",
-            "request": "launch",
-            "mainClass": "com.example.demo.Application",
-            "projectName": "3-wallet-service"
-        },
-        {
-            "type": "java",
-            "name": "Application(3)",
-            "request": "launch",
-            "mainClass": "com.example.demo.Application",
-            "projectName": "4-transaction-service"
-        },
-        {
-            "type": "java",
-            "name": "Application(4)",
-            "request": "launch",
-            "mainClass": "com.example.demo.Application",
-            "projectName": "5-gate-way"
-        },
-        {
-            "type": "java",
-            "name": "Application(5)",
-            "request": "launch",
-            "mainClass": "com.example.__reward_service.Application",
-            "projectName": "6-reward-service"
-        }
-    ]
->>>>>>> 38c68ab (initial commit)
 }

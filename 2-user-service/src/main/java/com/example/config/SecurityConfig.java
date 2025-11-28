@@ -7,7 +7,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -38,7 +37,7 @@ public class SecurityConfig {
     http.cors(Customizer.withDefaults())
       .csrf(AbstractHttpConfigurer::disable)
         .authorizeHttpRequests(requests -> requests
-            .requestMatchers("/auth/users/register", "/auth/users/login", "/auth/users/validate"
+            .requestMatchers("/auth/register", "/auth/login", "/auth/validate"
                 ) //"/**/v3/api-docs/**"/**/swagger-ui/**"
             .permitAll()
             .anyRequest().authenticated())
