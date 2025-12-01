@@ -1,0 +1,17 @@
+#application.yaml
+
+spring:
+  application:
+    name: gate-way
+
+  profiles:
+    active: dev
+
+  config:
+    import: "optional:configserver:"
+
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        service-id: config-server
