@@ -9,7 +9,7 @@ import lombok.*;
 
 @Entity
 @Table(
-        name = "users",
+        name = "user",
         indexes = {
                 @Index(name = "idx_user_email", columnList = "email"),
                 @Index(name = "idx_user_phone", columnList = "phone_no")

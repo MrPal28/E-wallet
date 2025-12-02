@@ -90,14 +90,21 @@ public class JwtUtil {
     // TOKEN VALIDATION
     // ---------------------------------------------------------
 
-    public boolean validateToken(String token) {
+    public boolean validateToken(String token, UserDetails userDetails) {
         try {
+            String username = extractUsername(token);
+
+            if (username == null || !username.equals(userDetails.getUsername())) {
+                log.warn("JWT username mismatch");
+                return false;
+            }
+
             if (isTokenExpired(token)) {
                 log.warn("JWT token expired");
                 return false;
             }
 
-            parseAllClaims(token); // validates signature
+            parseAllClaims(token); // validates integrity + signature
             return true;
 
         } catch (Exception ex) {

@@ -18,7 +18,7 @@ public class NewUserEventConsumer {
   private final ObjectMapper objectMapper;
   private final WalletService walletService;
 
-  @KafkaListener(topics = "Newuser-topic", groupId = "wallet-service")
+  @KafkaListener(topics = "user-event", groupId = "wallet-service")
 	public void consume(ConsumerRecord<String, String> record) {
 		System.out.println("******u have a notification new user registered********");
 		System.out.println(record.key());
