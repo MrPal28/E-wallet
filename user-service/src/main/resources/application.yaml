@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: user-service
+
+  profiles:
+    active: dev
+
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        service-id: config-server
+
+  config:
+    import: "optional:configserver:"
+
