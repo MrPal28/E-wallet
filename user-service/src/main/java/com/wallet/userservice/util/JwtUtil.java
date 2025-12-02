@@ -1,47 +1,54 @@
-
 package com.wallet.userservice.util;
-
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
+
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
-import java.util.Date;
-import java.util.function.Function;
-
 import javax.crypto.SecretKey;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
 
 @Slf4j
 @Component
 public class JwtUtil {
 
-    @Value("${spring.cloud.gateway.jwt.secret}")
+    // -------- ENVIRONMENT CONFIGURATION ----------
+
+    @Value("${USER_SERVICE_JWT_SECRET}")
     private String secretKey;
 
-    @Value("${spring.cloud.gateway.jwt.allowed-skew:5000}") // 5 seconds by default
-    private long allowedClockSkew;
+    @Value("${USER_SERVICE_JWT_EXPIRATION:900000}") // default 15 minutes
+    private long jwtExpirationMs;
 
-    private SecretKey getSignInKey() {
+    @Value("${USER_SERVICE_JWT_ALLOWED_SKEW:5}") // default 5 seconds
+    private long allowedClockSkewSeconds;
+
+    // ---------------------------------------------------------
+
+    private SecretKey getSigningKey() {
         try {
-            byte[] keyBytes = Decoders.BASE64.decode(secretKey);
-            return Keys.hmacShaKeyFor(keyBytes);
+            byte[] decoded = Decoders.BASE64.decode(secretKey);
+            return Keys.hmacShaKeyFor(decoded);
         } catch (Exception ex) {
-            log.error("Failed to decode JWT secret key: {}", ex.getMessage());
-            throw new IllegalStateException("Invalid JWT Secret Key");
+            log.error("Invalid JWT secret key: {}", ex.getMessage());
+            throw new IllegalStateException("JWT signing key is invalid");
         }
     }
 
-    private Claims getAllClaims(String token) {
+    private Claims parseAllClaims(String token) {
         try {
             return Jwts.parser()
-                    .verifyWith(getSignInKey())
-                    .setAllowedClockSkewSeconds(allowedClockSkew / 1000)
+                    .verifyWith(getSigningKey())
+                    .clockSkewSeconds(allowedClockSkewSeconds)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
@@ -51,16 +58,20 @@ public class JwtUtil {
         }
     }
 
+    // ---------------------------------------------------------
+    // CLAIM EXTRACTION
+    // ---------------------------------------------------------
+
     public <T> T extractClaim(String token, Function<Claims, T> resolver) {
-        return resolver.apply(getAllClaims(token));
+        return resolver.apply(parseAllClaims(token));
     }
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public Integer extractUserId(String token) {
-        return extractClaim(token, claims -> claims.get("userId", Integer.class));
+    public Long extractUserId(String token) {
+        return extractClaim(token, claims -> claims.get("userId", Long.class));
     }
 
     public String extractRole(String token) {
@@ -75,19 +86,51 @@ public class JwtUtil {
         return extractExpiration(token).before(new Date());
     }
 
+    // ---------------------------------------------------------
+    // TOKEN VALIDATION
+    // ---------------------------------------------------------
+
     public boolean validateToken(String token) {
         try {
-            boolean expired = isTokenExpired(token);
-            if (expired) {
+            if (isTokenExpired(token)) {
                 log.warn("JWT token expired");
                 return false;
             }
-            // Parsing itself validates structure & signature
-            getAllClaims(token);
+
+            parseAllClaims(token); // validates signature
             return true;
+
         } catch (Exception ex) {
             log.error("JWT validation failed: {}", ex.getMessage());
             return false;
         }
+    }
+
+    // ---------------------------------------------------------
+    // TOKEN GENERATION
+    // ---------------------------------------------------------
+
+    public String generateToken(UserDetails userDetails) {
+        Map<String, Object> claims = new HashMap<>();
+
+        // Extract userId + role from our CustomUserDetails
+        claims.put("userId", ((com.wallet.userservice.config.CustomUserDetails) userDetails).getId());
+        claims.put("role", ((com.wallet.userservice.config.CustomUserDetails) userDetails).getRole());
+
+        return buildToken(claims, userDetails.getUsername());
+    }
+
+    private String buildToken(Map<String, Object> claims, String subject) {
+
+        Date now = new Date();
+        Date expiration = new Date(now.getTime() + jwtExpirationMs);
+
+        return Jwts.builder()
+                .claims(claims)
+                .subject(subject)
+                .issuedAt(now)
+                .expiration(expiration)
+                .signWith(getSigningKey(), Jwts.SIG.HS256)
+                .compact();
     }
 }

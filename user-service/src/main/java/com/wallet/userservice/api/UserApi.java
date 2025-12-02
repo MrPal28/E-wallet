@@ -1,95 +1,91 @@
 package com.wallet.userservice.api;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.wallet.userservice.dto.KycRequest;
-import com.wallet.userservice.dto.KycStatusResponse;
-import com.wallet.userservice.dto.LoginRequest;
-import com.wallet.userservice.dto.LoginResponse;
-import com.wallet.userservice.dto.RegisterRequest;
-import com.wallet.userservice.dto.UpdateUserRequest;
-import com.wallet.userservice.dto.UserResponse;
+import com.wallet.userservice.dto.*;
 import com.wallet.userservice.service.UserService;
-
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
-@RequestMapping("/auth")        
+@RequiredArgsConstructor
+@RequestMapping("/auth")
 public class UserApi {
 
-	@Autowired
-	private UserService userService;
-	
- @PostMapping("/register")
+    private final UserService userService;
+
+    // ---------------------------------------------------
+    // REGISTER
+    // ---------------------------------------------------
+    @PostMapping("/register")
     public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
-        UserResponse response = userService.register(request);
-        return ResponseEntity.ok(response);
+        log.info("API: Register request received for email={}", request.getEmail());
+        return ResponseEntity.ok(userService.register(request));
     }
 
-    // 2. Login User
+    // ---------------------------------------------------
+    // LOGIN
+    // ---------------------------------------------------
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        
-        LoginResponse response = userService.login(request);
-        return ResponseEntity.ok(response);
+        log.info("API: Login attempt for email={}", request.getEmail());
+        return ResponseEntity.ok(userService.login(request));
     }
 
-
-    // 4. Get Current Authenticated User (from token)
+    // ---------------------------------------------------
+    // CURRENT USER
+    // ---------------------------------------------------
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser() {
-        UserResponse response = userService.getCurrentUser();
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(userService.getCurrentUser());
     }
 
-    // 5. Update User Profile
+    // ---------------------------------------------------
+    // UPDATE USER PROFILE
+    // ---------------------------------------------------
     @PutMapping("/{userId}")
-    public ResponseEntity<UserResponse> updateUserProfile(@PathVariable Long userId,
-                                                          @Valid @RequestBody UpdateUserRequest request) {
-        UserResponse response = userService.updateUserProfile(userId, request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<UserResponse> updateUserProfile(
+            @PathVariable Long userId,
+            @Valid @RequestBody UpdateUserRequest request
+    ) {
+        return ResponseEntity.ok(userService.updateUserProfile(userId, request));
     }
 
-    // 6. Get User by ID
+    // ---------------------------------------------------
+    // GET USER BY ID
+    // ---------------------------------------------------
     @GetMapping("/{userId}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long userId) {
-        UserResponse response = userService.getUserById(userId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(userService.getUserById(userId));
     }
 
-    // 7. Get User by Email
+    // ---------------------------------------------------
+    // GET USER BY EMAIL
+    // ---------------------------------------------------
     @GetMapping("/email")
     public ResponseEntity<UserResponse> getUserByEmail(@RequestParam String email) {
-        UserResponse response = userService.getUserByEmail(email);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(userService.getUserByEmail(email));
     }
 
-    // 8. Submit KYC
+    // ---------------------------------------------------
+    // SUBMIT KYC
+    // ---------------------------------------------------
     @PostMapping("/{userId}/kyc")
-    public ResponseEntity<Void> submitKyc(@PathVariable Long userId,
-                                          @Valid @RequestBody KycRequest request) {
+    public ResponseEntity<Void> submitKyc(
+            @PathVariable Long userId,
+            @Valid @RequestBody KycRequest request
+    ) {
         userService.submitKyc(userId, request);
         return ResponseEntity.ok().build();
     }
 
-    // 9. Get KYC Status
+    // ---------------------------------------------------
+    // KYC STATUS
+    // ---------------------------------------------------
     @GetMapping("/{userId}/kyc/status")
     public ResponseEntity<KycStatusResponse> getKycStatus(@PathVariable Long userId) {
-        KycStatusResponse response = userService.getKycStatus(userId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(userService.getKycStatus(userId));
     }
-
-
 }

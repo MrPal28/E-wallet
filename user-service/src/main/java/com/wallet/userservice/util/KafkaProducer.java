@@ -1,29 +1,43 @@
 package com.wallet.userservice.util;
 
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallet.userservice.dto.UserResponse;
-
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Component;
 
-@Service
+@Slf4j
+@Component
 @RequiredArgsConstructor
 public class KafkaProducer {
-  private final KafkaTemplate<String, String> kafkaTemplate;
-	private final ObjectMapper objectMapper;
 
-  @Async
-  public void messageToKafka(String userMail , UserResponse userResponse){
-		try{
-			String message = objectMapper.writeValueAsString(userResponse);
-			System.out.println("Message to Kafka: " + message);
-			kafkaTemplate.send("user-event", userMail, message);
-			System.out.println("Message sent to Kafka successfully");
-		}catch (JsonProcessingException e){
-			e.printStackTrace();
-		}
-	}
+    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final ObjectMapper objectMapper;
+
+    @Value("${USER_SERVICE_KAFKA_TOPIC}")
+    private String userEventTopic;
+
+    public void sendUserEvent(String userEmail, UserResponse payload) {
+        try {
+            String json = objectMapper.writeValueAsString(payload);
+
+            log.info("Producing event to Kafka topic='{}', key='{}'", userEventTopic, userEmail);
+
+            kafkaTemplate.send(userEventTopic, userEmail, json)
+                    .whenComplete((result, ex) -> {
+                        if (ex != null) {
+                            log.error("Failed to publish user event to Kafka: {}", ex.getMessage(), ex);
+                        } else {
+                            log.debug("Kafka publish success: partition={}, offset={}",
+                                    result.getRecordMetadata().partition(),
+                                    result.getRecordMetadata().offset());
+                        }
+                    });
+
+        } catch (Exception ex) {
+            log.error("Error serializing Kafka payload: {}", ex.getMessage(), ex);
+        }
+    }
 }
