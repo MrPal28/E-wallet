@@ -11,9 +11,9 @@ import lombok.Data;
 @Data
 @Builder
 public class WalletResponse {
-    private int walletId;
+    private Long walletId;
     private Long userId;
-    private BigDecimal walletBalance;
+    private BigDecimal currentBalance;
     private WalletStatus status;
-    private LocalDate lastUpdated;
+    private Instant updatedAt;
 }

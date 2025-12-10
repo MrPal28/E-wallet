@@ -1,5 +1,4 @@
-package com.example.demo.entity;
-
+package com.wallet.walletservice.entity;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
