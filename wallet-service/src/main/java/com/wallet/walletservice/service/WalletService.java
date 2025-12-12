@@ -1,14 +1,15 @@
-package com.example.demo.service;
+package com.wallet.walletservice.service;
 
 
-import com.example.demo.dto.WalletResponse;
-import com.example.demo.entity.Wallet;
+import java.math.BigDecimal;
+
+import com.wallet.walletservice.dto.WalletResponse;
 
 public interface WalletService {
-    Wallet registerNewWallet(Long userId);
+    WalletResponse registerNewWallet(Long userId);
     WalletResponse getWalletByUserId(Long userId);
-    // WalletResponse addMoney(Long userId, AddMoneyRequest request);
-    // WalletResponse transferMoney(Long fromUserId, TransferRequest request);
+    WalletResponse credit(Long userId, BigDecimal amount, String referenceId, String referenceType);
+    WalletResponse debit(Long userId, BigDecimal amount, String referenceId, String referenceType);
     String getWalletStatus(Long userId);
 }
 

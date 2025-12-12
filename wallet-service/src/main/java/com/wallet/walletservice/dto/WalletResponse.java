@@ -1,9 +1,9 @@
-package com.example.demo.dto;
+package com.wallet.walletservice.dto;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.Instant;
 
-import com.example.demo.entity.WalletStatus;
+import com.wallet.walletservice.constants.WalletStatus;
 
 import lombok.Builder;
 import lombok.Data;

@@ -1,4 +1,5 @@
-package com.wallet.walletservice.entity;
+package com.wallet.walletservice.constants;
+
 public enum WalletStatus {
 ACTIVE,DORMANT,INACTIVE
 }

@@ -1,4 +1,4 @@
-package com.example.demo.dto;
+package com.wallet.walletservice.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 @NoArgsConstructor
-public class UserResponse {
+public class UserCreatedEvent {
     private Long id;
     private String userName;
     private String email;

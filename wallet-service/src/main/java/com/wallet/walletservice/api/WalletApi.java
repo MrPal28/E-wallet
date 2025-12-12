@@ -1,4 +1,4 @@
-package com.example.demo.api;
+package com.wallet.walletservice.api;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.demo.dto.WalletResponse;
-import com.example.demo.service.WalletService;
+import com.wallet.walletservice.dto.WalletResponse;
+import com.wallet.walletservice.service.WalletService;
 
 import jakarta.servlet.http.HttpServletRequest;
 

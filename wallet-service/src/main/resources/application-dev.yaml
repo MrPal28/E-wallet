@@ -2,48 +2,51 @@ spring:
   application:
     name: ${APP_NAME:wallet-service}
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000
+  cloud:
+    config:
+      enabled: false
+
   datasource:
     url: ${DB_URL}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    hikari:
-      maximum-pool-size: ${DB_POOL_SIZE:10}
-      minimum-idle: ${DB_MIN_IDLE:5}
-      idle-timeout: 30000
-      max-lifetime: 1800000
-      connection-timeout: 30000
+
 
   jpa:
     hibernate:
       ddl-auto: ${HIBERNATE_DDL:auto}
     properties:
-      hibernate.format_sql: true
-      hibernate.dialect: org.hibernate.dialect.MySQL8Dialect
-    show-sql: false
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        "[show_sql]": ${HIBERNATE_SHOW_SQL:false} 
 
   kafka:
     consumer:
       bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
       group-id: ${KAFKA_GROUP_ID:wallet-service}
       auto-offset-reset: earliest
+      enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-
-  redis:
-    host: ${REDIS_HOST:localhost}
-    port: ${REDIS_PORT:6379}
-    password: ${REDIS_PASSWORD:}
-    timeout: 2000
+    listener:
+      ack-mode: manual
+      concurrency: ${KAFKA_CONSUMER_THREADS:3}
 
 server:
   port: ${PORT:8000}
 
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+
 logging:
-  level:
-    org.springframework.kafka.listener: DEBUG
-  pattern.console: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} - %msg%n"
-  file:
     name: logs/wallet.log
 
 management:
@@ -52,8 +55,4 @@ management:
       exposure:
         include: health,info,prometheus,metrics
 
-# Kafka Listener Reliability
-spring.kafka.listener:
-  ack-mode: record
-  concurrency: ${KAFKA_CONSUMER_THREADS:3}
 
