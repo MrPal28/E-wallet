@@ -43,11 +43,11 @@ server:
 
 eureka:
   client:
-    register-with-eureka: false
-    fetch-registry: false
+    register-with-eureka: true
+    fetch-registry: true
 
 logging:
-    name: logs/wallet.log
+  file.name: logs/wallet.log
 
 management:
   endpoints:
