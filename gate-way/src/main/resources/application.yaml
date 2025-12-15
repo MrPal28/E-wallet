@@ -15,4 +15,3 @@ spring:
 
   config:
     import: "optional:configserver:"
-

@@ -21,6 +21,10 @@ eureka:
   client:
     serviceUrl:
       defaultZone: ${EUREKA_SERVICE_URL}
+  instance:
+    hostname: localhost
+    non-secure-port: ${server.port}
+    prefer-ip-address: true
 
 logging:
   level:

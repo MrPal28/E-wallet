@@ -2,6 +2,7 @@ spring:
   application:
     name: ${APP_NAME:wallet-service}
 
+
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -45,7 +46,13 @@ eureka:
   client:
     register-with-eureka: true
     fetch-registry: true
-    service-url: ${EUREKA_SERVICE_URL:http://localhost:8761/eureka}
+    service-url: 
+      defaultZone: ${EUREKA_SERVICE_URL:http://localhost:8761/eureka}
+  instance:
+    hostname: localhost
+    non-secure-port: ${server.port}
+    prefer-ip-address: true
+
 
 logging:
   file.name: logs/wallet.log
