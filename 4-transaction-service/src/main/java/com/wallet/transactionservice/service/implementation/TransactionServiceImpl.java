@@ -1,17 +1,17 @@
-package com.example.demo.service.implementation;
+package com.wallet.transactionservice.service.implementation;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
-import com.example.demo.dto.AddMoneyRequest;
-import com.example.demo.dto.TransactionResponse;
-import com.example.demo.dto.TransferRequest;
-import com.example.demo.entity.Transaction;
-import com.example.demo.repo.TransactionRepository;
-import com.example.demo.service.TransactionService;
-import com.example.demo.util.TransferMoneyEventProducer;
+import com.wallet.transactionservice.dto.AddMoneyRequest;
+import com.wallet.transactionservice.dto.TransactionResponse;
+import com.wallet.transactionservice.dto.TransferRequest;
+import com.wallet.transactionservice.entity.Transaction;
+import com.wallet.transactionservice.repo.TransactionRepository;
+import com.wallet.transactionservice.service.TransactionService;
+import com.wallet.transactionservice.util.TransferMoneyEventProducer;
 
 import lombok.RequiredArgsConstructor;
 

@@ -1,16 +1,16 @@
-package com.example.demo.util;
+package com.wallet.transactionservice.util;
 
 import java.math.BigDecimal;
 
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-import com.example.demo.constants.TransactionStatus;
-import com.example.demo.dto.TransferEvent;
-import com.example.demo.entity.Transaction;
-import com.example.demo.repo.TransactionRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wallet.transactionservice.constants.TransactionStatus;
+import com.wallet.transactionservice.dto.TransferEvent;
+import com.wallet.transactionservice.entity.Transaction;
+import com.wallet.transactionservice.repo.TransactionRepository;
 
 import lombok.RequiredArgsConstructor;
 

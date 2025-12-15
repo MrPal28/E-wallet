@@ -1,4 +1,4 @@
-package com.example.demo.api;
+package com.wallet.transactionservice.api;
 
 import java.util.List;
 
@@ -10,9 +10,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.demo.dto.TransactionResponse;
-import com.example.demo.dto.TransferRequest;
-import com.example.demo.service.TransactionService;
+import com.wallet.transactionservice.dto.TransactionResponse;
+import com.wallet.transactionservice.dto.TransferRequest;
+import com.wallet.transactionservice.service.TransactionService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

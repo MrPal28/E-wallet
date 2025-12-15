@@ -1,11 +1,10 @@
-package com.example.demo.service;
+package com.wallet.transactionservice.service;
 
 import java.util.List;
 
-import com.example.demo.dto.AddMoneyRequest;
-// import com.example.demo.dto.TransactionRequest;
-import com.example.demo.dto.TransactionResponse;
-import com.example.demo.dto.TransferRequest;
+import com.wallet.transactionservice.dto.AddMoneyRequest;
+import com.wallet.transactionservice.dto.TransactionResponse;
+import com.wallet.transactionservice.dto.TransferRequest;
 
 public interface TransactionService {
     // TransactionResponse createTransaction(Long fromUserId, TransactionRequest request);

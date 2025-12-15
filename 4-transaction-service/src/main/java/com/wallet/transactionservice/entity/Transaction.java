@@ -1,9 +1,9 @@
-package com.example.demo.entity;
+package com.wallet.transactionservice.entity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import com.example.demo.constants.TransactionStatus;
+import com.wallet.transactionservice.constants.TransactionStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

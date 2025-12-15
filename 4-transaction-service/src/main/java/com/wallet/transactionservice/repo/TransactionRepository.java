@@ -1,12 +1,11 @@
-package com.example.demo.repo;
+package com.wallet.transactionservice.repo;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.example.demo.entity.Transaction;
+import com.wallet.transactionservice.entity.Transaction;
 
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
