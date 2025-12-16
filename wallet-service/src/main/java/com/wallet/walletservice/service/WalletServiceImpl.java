@@ -299,9 +299,7 @@ public class WalletServiceImpl implements WalletService {
         }
     }
 
-    /* ===========================
-       Domain Exceptions (small, move to separate files if needed)
-       =========================== */
+    /* Domain Exceptions (small, move to separate files if needed) */
     public static class WalletNotFoundException extends RuntimeException {
         public WalletNotFoundException(Long userId) {
             super("Wallet not found for userId=" + userId);

@@ -26,17 +26,17 @@ public class WalletCreditConsumer {
     public void onCredit(ConsumerRecord<String, String> record, Acknowledgment ack) {
         try {
             WalletCreditRequest request = mapper.readValue(record.value(), WalletCreditRequest.class);
-            log.info("→ Credit Request txn={} user={} amount={}", request.getTransactionId(), request.getUserId(), request.getAmount());
+            log.info("→ Credit Request txn={} user={} amount={}", request.getReferenceId(), request.getUserId(), request.getAmount());
 
             walletService.credit(
                     request.getUserId(),
                     request.getAmount(),
-                    request.getTransactionId(),
+                    request.getReferenceId(),
                     request.getReferenceType()
             );
 
             ack.acknowledge();
-            log.info("Credit Success for txn={} user={}", request.getTransactionId(), request.getUserId());
+            log.info("Credit Success for txn={} user={}", request.getReferenceId(), request.getUserId());
 
         } catch (Exception ex) {
             log.error("Credit Failed reason: {}", ex.getMessage());

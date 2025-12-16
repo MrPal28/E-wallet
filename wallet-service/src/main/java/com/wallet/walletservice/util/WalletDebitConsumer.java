@@ -27,17 +27,17 @@ public class WalletDebitConsumer {
         try {
             WalletDebitRequest request = mapper.readValue(record.value(), WalletDebitRequest.class);
             log.info("→ Debit Request Received txnId={} amount={} user={} topic={}",
-                    request.getTransactionId(), request.getAmount(), request.getUserId(), record.topic());
+                    request.getReferenceId(), request.getAmount(), request.getUserId(), record.topic());
 
             walletService.debit(
                     request.getUserId(),
                     request.getAmount(),
-                    request.getTransactionId(),
+                    request.getReferenceId(),
                     request.getReferenceType()
             );
 
             ack.acknowledge(); // process complete
-            log.info("Debit Success txnId={} user={}", request.getTransactionId(), request.getUserId());
+            log.info("Debit Success txnId={} user={}", request.getReferenceId(), request.getUserId());
 
         } catch (Exception ex) {
             log.error("Debit Failed txn={}, reason={}", record.key(), ex.getMessage());

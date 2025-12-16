@@ -1,4 +1,4 @@
-package com.wallet.walletservice.dto;
+package com.wallet.transactionservice.eventDto;
 
 import java.math.BigDecimal;
 
