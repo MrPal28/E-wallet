@@ -8,27 +8,55 @@ import com.wallet.transactionservice.eventDto.WalletCreditRequest;
 import com.wallet.transactionservice.eventDto.WalletDebitRequest;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class WalletEventPublisher {
 
-    private final KafkaTemplate<String, String> kafka;
-    private final ObjectMapper mapper;
+    private static final String DEBIT_TOPIC = "wallet.debit.request";
+    private static final String CREDIT_TOPIC = "wallet.credit.request";
 
-    public void debit(WalletDebitRequest req) {
-        send("wallet.debit.request", req);
+    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final ObjectMapper objectMapper;
+
+    public void debit(WalletDebitRequest request) {
+        publish(DEBIT_TOPIC, request.getReferenceId(), request);
     }
 
-    public void credit(WalletCreditRequest req) {
-        send("wallet.credit.request", req);
+    public void credit(WalletCreditRequest request) {
+        publish(CREDIT_TOPIC, request.getReferenceId(), request);
     }
 
-    private void send(String topic, Object payload) {
+    private void publish(String topic, String key, Object payload) {
         try {
-            kafka.send(topic, mapper.writeValueAsString(payload));
-        } catch (Exception e) {
-            throw new RuntimeException("Kafka publish failed");
+            String json = objectMapper.writeValueAsString(payload);
+
+            kafkaTemplate.send(topic, key, json);
+
+            log.info(
+                "Published event topic={} key={} payload={}",
+                topic, key, json
+            );
+
+        } catch (Exception ex) {
+            log.error(
+                "Kafka publish failed topic={} key={} payload={} error={}",
+                topic, key, payload, ex.getMessage(), ex
+            );
+
+            // In prod: metrics + retry or outbox
+            throw new EventPublishException("Failed to publish event to " + topic, ex);
+        }
+    }
+
+    /* Custom exception for observability */
+    public static class EventPublishException extends RuntimeException {
+        public EventPublishException(String msg, Throwable cause) {
+            super(msg, cause);
         }
     }
 }

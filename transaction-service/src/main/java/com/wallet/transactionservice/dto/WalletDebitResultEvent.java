@@ -1,22 +1,22 @@
-package com.wallet.walletservice.dto;
+package com.wallet.transactionservice.dto;
 
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-import com.wallet.walletservice.constants.TransactionStatus;
+import com.wallet.transactionservice.constants.TransactionStatus;
 
-@Data
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class WalletDebitResultEvent implements Serializable {
+public class WalletDebitResultEvent {
 
     private String eventId;          // unique event id (UUID)
     private String referenceId;      // your current correlation key

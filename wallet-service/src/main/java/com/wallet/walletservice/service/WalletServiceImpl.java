@@ -15,6 +15,7 @@ import com.wallet.walletservice.entity.WalletLedger;
 import com.wallet.walletservice.repo.WalletAccountRepository;
 import com.wallet.walletservice.repo.WalletLedgerRepository;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +49,7 @@ public class WalletServiceImpl implements WalletService {
     private final RedisTemplate<String, String> redisTemplate;         // configured in RedisConfig
     private final WalletCreditResultPublisher creditResultPublisher;
     private final WalletDebitResultPublisher debitResultPublisher;
+    private final ObjectMapper objectMapper;
 
     private static final String BAL_CACHE_PREFIX = "wallet:balance:";
     private static final Duration BAL_CACHE_TTL = Duration.ofMinutes(10);
@@ -66,7 +68,7 @@ public class WalletServiceImpl implements WalletService {
         walletRepo.save(wallet);
 
         // warm cache
-        setBalanceCache(userId, BigDecimal.ZERO);
+        setWalletCache(wallet);
         return toResponse(wallet);
     }
 
@@ -75,28 +77,34 @@ public class WalletServiceImpl implements WalletService {
      */
     @Override
     public WalletResponse getWalletByUserId(Long userId) {
-        String cacheKey = BAL_CACHE_PREFIX + userId;
+        String key = BAL_CACHE_PREFIX + userId;
+
         try {
-            String cached = redisTemplate.opsForValue().get(cacheKey);
+            String cached = redisTemplate.opsForValue().get(key);
             if (cached != null) {
-                log.debug("Cache hit for wallet={} value={}", userId, cached);
+                WalletResponse cache = objectMapper.readValue(cached, WalletResponse.class);
+                log.debug("Redis HIT wallet={}", userId);
+
                 return WalletResponse.builder()
-                        .userId(userId)
-                        .currentBalance(new BigDecimal(cached))
+                        .walletId(cache.getWalletId())
+                        .userId(cache.getUserId())
+                        .currentBalance(cache.getCurrentBalance())
+                        .status(cache.getStatus())
+                        .updatedAt(cache.getUpdatedAt())
                         .build();
             }
         } catch (Exception e) {
-            log.warn("Redis read failed for key={}, falling back to DB. cause={}", cacheKey, e.toString());
+            log.warn("Redis read failed wallet={}, fallback to DB", userId, e);
         }
 
+        // DB fallback only if Redis MISS
         WalletAccount wallet = walletRepo.findByUserId(userId)
                 .orElseThrow(() -> new WalletNotFoundException(userId));
 
-        // update cache best-effort
-        setBalanceCache(wallet.getUserId(), wallet.getCurrentBalance());
+        setWalletCache(wallet);
         return toResponse(wallet);
     }
-
+    
     @Override
     public String getWalletStatus(Long userId) {
         return walletRepo.findByUserId(userId)
@@ -192,7 +200,7 @@ public class WalletServiceImpl implements WalletService {
             walletRepo.save(wallet);
 
             //  Cache update
-            setBalanceCache(userId, newBalance);
+            setWalletCache(wallet);
 
             // Publish SUCCESS
             creditResultPublisher.publish(
@@ -325,7 +333,7 @@ public class WalletServiceImpl implements WalletService {
             wallet.setCurrentBalance(newBalance);
             walletRepo.save(wallet);
 
-            setBalanceCache(userId, newBalance);
+            setWalletCache(wallet);
 
             // Publish SUCCESS
             debitResultPublisher.publish(
@@ -364,18 +372,12 @@ public class WalletServiceImpl implements WalletService {
                 .walletId(wallet.getWalletId())
                 .userId(wallet.getUserId())
                 .currentBalance(wallet.getCurrentBalance())
+                .updatedAt(wallet.getUpdatedAt())
                 .status(wallet.getStatus())
                 .build();
     }
 
-    private void setBalanceCache(Long userId, BigDecimal balance) {
-        String key = BAL_CACHE_PREFIX + userId;
-        try {
-            redisTemplate.opsForValue().set(key, balance.toPlainString(), BAL_CACHE_TTL.toSeconds(), TimeUnit.SECONDS);
-        } catch (Exception e) {
-            log.warn("Failed to set balance cache key={} balance={} cause={}", key, balance, e.toString());
-        }
-    }
+    
 
     /**
      * Simple Redis SETNX lock with expiry.
@@ -409,5 +411,28 @@ public class WalletServiceImpl implements WalletService {
             log.warn("Failed to release lock key={} cause={}", key, e.toString());
         }
     }
+
+
+    private void setWalletCache(WalletAccount wallet) {
+        String key = BAL_CACHE_PREFIX + wallet.getUserId();
+        try {
+            WalletResponse cache = WalletResponse.builder()
+                    .walletId(wallet.getWalletId())
+                    .userId(wallet.getUserId())
+                    .currentBalance(wallet.getCurrentBalance())
+                    .status(wallet.getStatus())
+                    .updatedAt(wallet.getUpdatedAt())
+                    .build();
+            log.info("Wallet cached successfully from SetWalletCache");
+            redisTemplate.opsForValue().set(
+                    key,
+                    objectMapper.writeValueAsString(cache),
+                    BAL_CACHE_TTL.toSeconds(),
+                    TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.warn("Failed to update wallet cache userId={}", wallet.getUserId(), e);
+        }
+    }
+
 
 }

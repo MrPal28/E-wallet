@@ -12,16 +12,20 @@ import com.wallet.walletservice.dto.WalletResponse;
 import com.wallet.walletservice.service.WalletService;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 
 
 
 
 @RestController
 @RequestMapping("/wallet")
+@Slf4j
 public class WalletApi {
 
   @Autowired
   private WalletService walletService;
+  // @Autowired
+  // private WalletAccountRepository walletAccountRepository;
 
   @GetMapping("/balance")
   public ResponseEntity<WalletResponse> getBalance(HttpServletRequest request){
@@ -52,5 +56,16 @@ public class WalletApi {
       String status = walletService.getWalletStatus(userId);
       return ResponseEntity.ok(status);
   }
+
+  // @PostMapping("/add")
+  // public ResponseEntity<String> addMoney(@RequestHeader("x-user-id") String userIdHeader){
+  //   WalletAccount wallet = walletAccountRepository.findByUserId(Long.parseLong(userIdHeader)).orElseThrow(()-> new RuntimeException("Wallet not found"));
+  //   wallet.setCurrentBalance(wallet.getCurrentBalance().add(new BigDecimal(5000)));
+  //   walletAccountRepository.save(wallet);
+  //   log.info("Money added successfully");
+  //   walletService.setWalletCache(wallet);
+  //   log.info("Wallet cached successfully");
+  //   return ResponseEntity.ok("Money added successfully");
+  // }
 
 }

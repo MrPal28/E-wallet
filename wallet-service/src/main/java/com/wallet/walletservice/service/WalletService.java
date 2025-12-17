@@ -4,6 +4,7 @@ package com.wallet.walletservice.service;
 import java.math.BigDecimal;
 
 import com.wallet.walletservice.dto.WalletResponse;
+import com.wallet.walletservice.entity.WalletAccount;
 
 public interface WalletService {
     WalletResponse registerNewWallet(Long userId);

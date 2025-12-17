@@ -1,13 +1,25 @@
+server:
+  port: ${PORT:8000}
+  shutdown: ${SHUTDOWN:graceful}
+
 spring:
   application:
     name: ${APP_NAME:wallet-service}
-
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
 
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       timeout: 2000
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+          max-wait: 2000ms
+
   cloud:
     config:
       enabled: false
@@ -17,15 +29,20 @@ spring:
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
-
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 30000
 
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: ${HIBERNATE_DDL:auto}
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
-        "[show_sql]": ${HIBERNATE_SHOW_SQL:false} 
+        "[show_sql]": ${HIBERNATE_SHOW_SQL:true}
 
   kafka:
     consumer:
@@ -35,40 +52,50 @@ spring:
       enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    listener:
-      ack-mode: manual
-      concurrency: ${KAFKA_CONSUMER_THREADS:3}
+      properties:
+        "[max.poll.interval.ms]": 300000
+        "[max.poll.records]": 50
+        "[session.timeout.ms]": 15000
+        "[heartbeat.interval.ms]": 3000
+
     producer:
       bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
-      
+      properties:
+        "[acks]": all
+        "[retries]": 3
+        "[linger.ms]": 5
+        "[enable.idempotence]": true
 
-server:
-  port: ${PORT:8000}
+    listener:
+      ack-mode: manual
+      concurrency: ${KAFKA_CONSUMER_THREADS:3}
 
 eureka:
   client:
     register-with-eureka: true
     fetch-registry: true
-    service-url: 
+    service-url:
       defaultZone: ${EUREKA_SERVICE_URL:http://localhost:8761/eureka}
   instance:
-    hostname: localhost
-    non-secure-port: ${server.port}
     prefer-ip-address: true
-
 
 logging:
   file.name: logs/wallet.log
   pattern:
-    console: "${LOG_PATTERN:-%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n}"
-    file: "${LOG_PATTERN:-%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n}"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  level:
+    root: INFO
+    "[com.wallet.walletservice]": DEBUG
+    "[org.springframework]": INFO
+    "[org.hibernate.SQL]": WARN
+    "[org.hibernate.type.descriptor.sql.BasicBinder]": TRACE
+
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info,prometheus,metrics
-
-

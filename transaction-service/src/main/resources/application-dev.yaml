@@ -4,6 +4,21 @@ server:
 spring:
   application:
     name: transaction-service
+  cloud:
+    config:
+      enabled: false
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/transaction_db
+    username: arindam
+    password: Ami10002@00125a
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 30000
 
   jpa:
     hibernate:
@@ -11,7 +26,7 @@ spring:
     show-sql: true
     properties:
       hibernate:
-        format_sql: true
+        "[format_sql]": true
 
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
@@ -19,11 +34,42 @@ spring:
 
   kafka:
     bootstrap-servers: localhost:9092
+
     consumer:
       group-id: transaction-group
       auto-offset-reset: earliest
+      enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.wallet.transactionservice.eventDto"
+        spring.json.use.type.headers: false
+        max.poll.records: 50
+        max.poll.interval.ms: 300000
+
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        acks: all
+        retries: 3
+        linger.ms: 5
+
+    listener:
+      ack-mode: manual
+      concurrency: 3
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_SERVICE_URL:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: true
+  

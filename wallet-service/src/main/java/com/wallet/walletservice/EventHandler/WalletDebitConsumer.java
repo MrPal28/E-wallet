@@ -1,6 +1,8 @@
 package com.wallet.walletservice.EventHandler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wallet.walletservice.Exceptions.InsufficientBalanceException;
+import com.wallet.walletservice.Exceptions.InvalidAmountException;
 import com.wallet.walletservice.dto.WalletDebitRequest;
 import com.wallet.walletservice.service.WalletService;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +24,7 @@ public class WalletDebitConsumer {
     private static final String IN_TOPIC = "wallet.debit.request";
     private static final String DLQ_TOPIC = "wallet.debit.dlq";
 
-    @KafkaListener(topics = IN_TOPIC, groupId = "wallet-service", concurrency = "4")
+    @KafkaListener(topics = IN_TOPIC, groupId = "${spring.kafka.consumer.group-id}", concurrency = "4")
     public void onDebit(ConsumerRecord<String, String> record, Acknowledgment ack) {
         try {
             WalletDebitRequest request = mapper.readValue(record.value(), WalletDebitRequest.class);
@@ -33,17 +35,18 @@ public class WalletDebitConsumer {
                     request.getUserId(),
                     request.getAmount(),
                     request.getReferenceId(),
-                    request.getReferenceType()
-            );
+                    request.getReferenceType());
 
             ack.acknowledge(); // process complete
             log.info("Debit Success txnId={} user={}", request.getReferenceId(), request.getUserId());
 
+        } catch (InsufficientBalanceException | InvalidAmountException ex) {
+            // business error already published as FAILED
+            ack.acknowledge();
         } catch (Exception ex) {
-            log.error("Debit Failed txn={}, reason={}", record.key(), ex.getMessage());
-
             kafkaEventPublisher.sendToDLQ(record.value(), DLQ_TOPIC);
-            ack.acknowledge(); // avoid infinite retry loop
+            ack.acknowledge();
         }
+
     }
 }

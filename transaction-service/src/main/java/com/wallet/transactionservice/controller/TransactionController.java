@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.wallet.transactionservice.Entity.Transaction;
+import com.wallet.transactionservice.dto.TransactionResponse;
 import com.wallet.transactionservice.service.TransactionService;
 
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ public class TransactionController {
     private final TransactionService service;
 
     @PostMapping("/transfer")
-    public Transaction transfer(
+    public TransactionResponse transfer(
             @RequestHeader("x-user-id") Long fromUser,
             @RequestParam Long toUser,
             @RequestParam BigDecimal amount) {
