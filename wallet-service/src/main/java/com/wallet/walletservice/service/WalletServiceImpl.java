@@ -1,17 +1,24 @@
 package com.wallet.walletservice.service;
 
+import com.wallet.walletservice.EventHandler.WalletCreditResultPublisher;
+import com.wallet.walletservice.EventHandler.WalletDebitResultPublisher;
+import com.wallet.walletservice.Exceptions.ConcurrentModificationException;
+import com.wallet.walletservice.Exceptions.InsufficientBalanceException;
+import com.wallet.walletservice.Exceptions.InvalidAmountException;
+import com.wallet.walletservice.Exceptions.WalletNotFoundException;
 import com.wallet.walletservice.constants.LedgerType;
+import com.wallet.walletservice.constants.TransactionStatus;
 import com.wallet.walletservice.constants.WalletStatus;
 import com.wallet.walletservice.dto.WalletResponse;
 import com.wallet.walletservice.entity.WalletAccount;
 import com.wallet.walletservice.entity.WalletLedger;
 import com.wallet.walletservice.repo.WalletAccountRepository;
 import com.wallet.walletservice.repo.WalletLedgerRepository;
+
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -22,7 +29,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Production-ready Wallet service
+ * Production Wallet service
  *
  * Principles:
  *  - Wallet state is the source of truth in DB.
@@ -39,16 +46,15 @@ public class WalletServiceImpl implements WalletService {
     private final WalletAccountRepository walletRepo;
     private final WalletLedgerRepository ledgerRepo;
     private final RedisTemplate<String, String> redisTemplate;         // configured in RedisConfig
-    private final Optional<KafkaTemplate<String, String>> kafkaTemplate; // optional, injected if available
+    private final WalletCreditResultPublisher creditResultPublisher;
+    private final WalletDebitResultPublisher debitResultPublisher;
 
     private static final String BAL_CACHE_PREFIX = "wallet:balance:";
     private static final Duration BAL_CACHE_TTL = Duration.ofMinutes(10);
     private static final String LOCK_PREFIX = "wallet:lock:";         // lock key format
     private static final long LOCK_EXPIRY_SECONDS = 10L;             // lock expiry to avoid deadlocks
 
-    /* ===========================
-       Register Wallet On User Creation
-       =========================== */
+    /* Register Wallet On User Creation */
     @Override
     public WalletResponse registerNewWallet(Long userId) {
         log.info("Registering wallet for userId={}", userId);
@@ -64,9 +70,9 @@ public class WalletServiceImpl implements WalletService {
         return toResponse(wallet);
     }
 
-    /* ===========================
+    /* 
        Read - try cache first
-       =========================== */
+     */
     @Override
     public WalletResponse getWalletByUserId(Long userId) {
         String cacheKey = BAL_CACHE_PREFIX + userId;
@@ -98,141 +104,261 @@ public class WalletServiceImpl implements WalletService {
                 .orElse("NOT_FOUND");
     }
 
-    /* ===========================
-       CREDIT - idempotent + atomic
-       =========================== */
+    /* CREDIT - idempotent + atomic */
     @Transactional
     @Override
-    public WalletResponse credit(Long userId, BigDecimal amount, String referenceId, String referenceType) {
-        if (amount == null || amount.signum() <= 0) throw new InvalidAmountException(amount);
+    public WalletResponse credit(
+            Long userId,
+            BigDecimal amount,
+            String referenceId,
+            String referenceType) {
+        if (amount == null || amount.signum() <= 0) {
+            creditResultPublisher.publish(
+                    userId,
+                    amount,
+                    null,
+                    referenceId,
+                    TransactionStatus.FAILED,
+                    "INVALID_AMOUNT");
+            throw new InvalidAmountException(amount);
+        }
 
         final String lockKey = LOCK_PREFIX + userId;
         final String lockValue = UUID.randomUUID().toString();
 
-        // 1) idempotency check BEFORE attempting locks (fast path)
-        if (ledgerRepo.existsByReferenceId(referenceId)) {
-            log.info("Duplicate credit request ignored referenceId={}", referenceId);
-            WalletAccount existingWallet = walletRepo.findByUserId(userId).orElseThrow(() -> new WalletNotFoundException(userId));
-            return toResponse(existingWallet);
+        // Idempotency fast-path
+        Optional<WalletLedger> existingLedger = ledgerRepo.findByReferenceId(referenceId);
+
+        if (existingLedger.isPresent()) {
+            WalletAccount wallet = walletRepo.findByUserId(userId)
+                    .orElseThrow(() -> new WalletNotFoundException(userId));
+
+            // IMPORTANT: still publish SUCCESS again
+            creditResultPublisher.publish(
+                    userId,
+                    amount,
+                    wallet.getCurrentBalance(),
+                    referenceId,
+                    TransactionStatus.SUCCESS,
+                    null);
+
+            return toResponse(wallet);
         }
 
         boolean locked = tryAcquireLock(lockKey, lockValue, LOCK_EXPIRY_SECONDS);
         if (!locked) {
-            // conservative: avoid immediate failure; caller/transaction-service should retry or handle pending
-            log.warn("Could not acquire redis lock for userId={}, referenceId={}", userId, referenceId);
-            throw new ConcurrentModificationException("Resource busy, try again");
+            creditResultPublisher.publish(
+                    userId,
+                    amount,
+                    null,
+                    referenceId,
+                    TransactionStatus.FAILED,
+                    "WALLET_LOCK_BUSY");
+            throw new ConcurrentModificationException("Wallet busy");
         }
 
         try {
-            // 2) row-level lock in DB for strong consistency
+            //  DB row lock
             WalletAccount wallet = walletRepo.findByUserIdForUpdate(userId)
                     .orElseThrow(() -> new WalletNotFoundException(userId));
 
-            // 3) second idempotency check under lock to avoid race
+            //  Idempotency re-check under lock
             if (ledgerRepo.existsByReferenceId(referenceId)) {
-                log.info("Duplicate credit (post-lock) ignored referenceId={}", referenceId);
+                creditResultPublisher.publish(
+                        userId,
+                        amount,
+                        wallet.getCurrentBalance(),
+                        referenceId,
+                        TransactionStatus.SUCCESS,
+                        null);
                 return toResponse(wallet);
             }
 
-            // 4) append ledger (audit + idempotency)
-            WalletLedger ledger = WalletLedger.builder()
-                    .walletId(wallet.getWalletId())
-                    .amount(amount)
-                    .type(LedgerType.CREDIT)
-                    .referenceId(referenceId)
-                    .referenceType(referenceType)
-                    .timestamp(Instant.now())
-                    .remarks("CREDIT via event/api")
-                    .build();
-            ledgerRepo.save(ledger);
+            //  Ledger append
+            ledgerRepo.save(
+                    WalletLedger.builder()
+                            .walletId(wallet.getWalletId())
+                            .amount(amount)
+                            .type(LedgerType.CREDIT)
+                            .referenceId(referenceId)
+                            .referenceType(referenceType)
+                            .timestamp(Instant.now())
+                            .remarks("CREDIT")
+                            .build());
 
-            // 5) apply balance change
+            //  Apply balance
             BigDecimal newBalance = wallet.getCurrentBalance().add(amount);
             wallet.setCurrentBalance(newBalance);
             walletRepo.save(wallet);
 
-            // 6) cache update & publish event (best-effort)
+            //  Cache update
             setBalanceCache(userId, newBalance);
-            publishBalanceEvent(userId, newBalance, referenceId, "CREDIT");
+
+            // Publish SUCCESS
+            creditResultPublisher.publish(
+                    userId,
+                    amount,
+                    newBalance,
+                    referenceId,
+                    TransactionStatus.SUCCESS,
+                    null);
 
             return toResponse(wallet);
+
+        } catch (Exception ex) {
+            log.error("Credit failed ref={} user={}", referenceId, userId, ex);
+
+            creditResultPublisher.publish(
+                    userId,
+                    amount,
+                    null,
+                    referenceId,
+                    TransactionStatus.FAILED,
+                    ex.getMessage());
+
+            throw ex;
 
         } finally {
             safeReleaseLock(lockKey, lockValue);
         }
     }
 
-    /* ===========================
-       DEBIT - idempotent + atomic + validation
-       =========================== */
+
     @Transactional
     @Override
-    public WalletResponse debit(Long userId, BigDecimal amount, String referenceId, String referenceType) {
-        if (amount == null || amount.signum() <= 0) throw new InvalidAmountException(amount);
+    public WalletResponse debit(
+            Long userId,
+            BigDecimal amount,
+            String referenceId,
+            String referenceType) {
+        if (amount == null || amount.signum() <= 0) {
+            debitResultPublisher.publish(
+                    userId,
+                    amount,
+                    null,
+                    referenceId,
+                    TransactionStatus.FAILED,
+                    "INVALID_AMOUNT");
+            throw new InvalidAmountException(amount);
+        }
 
         final String lockKey = LOCK_PREFIX + userId;
         final String lockValue = UUID.randomUUID().toString();
 
-        // idempotency fast-path
-        if (ledgerRepo.existsByReferenceId(referenceId)) {
-            log.info("Duplicate debit request ignored referenceId={}", referenceId);
-            WalletAccount existingWallet = walletRepo.findByUserId(userId).orElseThrow(() -> new WalletNotFoundException(userId));
-            return toResponse(existingWallet);
+        // Idempotency fast-path
+        Optional<WalletLedger> existingLedger = ledgerRepo.findByReferenceId(referenceId);
+
+        if (existingLedger.isPresent()) {
+            WalletAccount wallet = walletRepo.findByUserId(userId)
+                    .orElseThrow(() -> new WalletNotFoundException(userId));
+
+            // Re-emit SUCCESS for idempotent replay
+            debitResultPublisher.publish(
+                    userId,
+                    amount,
+                    wallet.getCurrentBalance(),
+                    referenceId,
+                    TransactionStatus.SUCCESS,
+                    null);
+
+            return toResponse(wallet);
         }
 
         boolean locked = tryAcquireLock(lockKey, lockValue, LOCK_EXPIRY_SECONDS);
         if (!locked) {
-            log.warn("Could not acquire redis lock for userId={}, referenceId={}", userId, referenceId);
-            throw new ConcurrentModificationException("Resource busy, try again");
+            debitResultPublisher.publish(
+                    userId,
+                    amount,
+                    null,
+                    referenceId,
+                    TransactionStatus.FAILED,
+                    "WALLET_LOCK_BUSY");
+            throw new ConcurrentModificationException("Wallet busy");
         }
 
         try {
+            // DB row lock
             WalletAccount wallet = walletRepo.findByUserIdForUpdate(userId)
                     .orElseThrow(() -> new WalletNotFoundException(userId));
 
-            // idempotency under lock
+            // Idempotency re-check under lock
             if (ledgerRepo.existsByReferenceId(referenceId)) {
-                log.info("Duplicate debit (post-lock) ignored referenceId={}", referenceId);
+                debitResultPublisher.publish(
+                        userId,
+                        amount,
+                        wallet.getCurrentBalance(),
+                        referenceId,
+                        TransactionStatus.SUCCESS,
+                        null);
                 return toResponse(wallet);
             }
 
-            // validation
+            // Balance validation
             if (wallet.getCurrentBalance().compareTo(amount) < 0) {
-                log.warn("Insufficient balance for userId={} balance={} requested={}", userId, wallet.getCurrentBalance(), amount);
-                throw new InsufficientBalanceException(userId, wallet.getCurrentBalance(), amount);
+                debitResultPublisher.publish(
+                        userId,
+                        amount,
+                        wallet.getCurrentBalance(),
+                        referenceId,
+                        TransactionStatus.FAILED,
+                        "INSUFFICIENT_BALANCE");
+                throw new InsufficientBalanceException(
+                        userId,
+                        wallet.getCurrentBalance(),
+                        amount);
             }
 
-            // ledger entry
-            WalletLedger ledger = WalletLedger.builder()
-                    .walletId(wallet.getWalletId())
-                    .amount(amount.negate()) // store negative amount for debit
-                    .type(LedgerType.DEBIT)
-                    .referenceId(referenceId)
-                    .referenceType(referenceType)
-                    .timestamp(Instant.now())
-                    .remarks("DEBIT via event/api")
-                    .build();
-            ledgerRepo.save(ledger);
+            // Ledger entry
+            ledgerRepo.save(
+                    WalletLedger.builder()
+                            .walletId(wallet.getWalletId())
+                            .amount(amount.negate())
+                            .type(LedgerType.DEBIT)
+                            .referenceId(referenceId)
+                            .referenceType(referenceType)
+                            .timestamp(Instant.now())
+                            .remarks("DEBIT")
+                            .build());
 
-            // apply
+            // Apply balance
             BigDecimal newBalance = wallet.getCurrentBalance().subtract(amount);
             wallet.setCurrentBalance(newBalance);
             walletRepo.save(wallet);
 
             setBalanceCache(userId, newBalance);
-            publishBalanceEvent(userId, newBalance, referenceId, "DEBIT");
+
+            // Publish SUCCESS
+            debitResultPublisher.publish(
+                    userId,
+                    amount,
+                    newBalance,
+                    referenceId,
+                    TransactionStatus.SUCCESS,
+                    null);
 
             return toResponse(wallet);
+
+        } catch (Exception ex) {
+            log.error("Debit failed ref={} user={}", referenceId, userId, ex);
+
+            // defensive: ensure FAILED is emitted if not already
+            debitResultPublisher.publish(
+                    userId,
+                    amount,
+                    null,
+                    referenceId,
+                    TransactionStatus.FAILED,
+                    ex.getMessage());
+
+            throw ex;
 
         } finally {
             safeReleaseLock(lockKey, lockValue);
         }
     }
 
-    /* ===========================
-       Helpers
-       =========================== */
 
+    /* Helpers */
     private WalletResponse toResponse(WalletAccount wallet) {
         return WalletResponse.builder()
                 .walletId(wallet.getWalletId())
@@ -248,21 +374,6 @@ public class WalletServiceImpl implements WalletService {
             redisTemplate.opsForValue().set(key, balance.toPlainString(), BAL_CACHE_TTL.toSeconds(), TimeUnit.SECONDS);
         } catch (Exception e) {
             log.warn("Failed to set balance cache key={} balance={} cause={}", key, balance, e.toString());
-        }
-    }
-
-    private void publishBalanceEvent(Long userId, BigDecimal newBalance, String referenceId, String action) {
-        try {
-            if (kafkaTemplate.isPresent()) {
-                // Build a small JSON string or use a serializer in production
-                String payload = String.format("{\"userId\":%d,\"balance\":\"%s\",\"referenceId\":\"%s\",\"action\":\"%s\"}",
-                        userId, newBalance.toPlainString(), referenceId, action);
-                kafkaTemplate.get().send("wallet-balance-events", userId.toString(), payload);
-                log.debug("Published balance event for userId={} action={} newBalance={}", userId, action, newBalance);
-            }
-        } catch (Exception e) {
-            // non-fatal: publishing failures shouldn't break wallet update
-            log.warn("Failed to publish balance event for userId={} cause={}", userId, e.toString());
         }
     }
 
@@ -299,26 +410,4 @@ public class WalletServiceImpl implements WalletService {
         }
     }
 
-    /* Domain Exceptions (small, move to separate files if needed) */
-    public static class WalletNotFoundException extends RuntimeException {
-        public WalletNotFoundException(Long userId) {
-            super("Wallet not found for userId=" + userId);
-        }
-    }
-
-    public static class InsufficientBalanceException extends RuntimeException {
-        public InsufficientBalanceException(Long userId, BigDecimal current, BigDecimal required) {
-            super("Insufficient balance for userId=" + userId + " current=" + current + " required=" + required);
-        }
-    }
-
-    public static class InvalidAmountException extends RuntimeException {
-        public InvalidAmountException(BigDecimal amount) {
-            super("Invalid amount: " + amount);
-        }
-    }
-
-    public static class ConcurrentModificationException extends RuntimeException {
-        public ConcurrentModificationException(String msg) { super(msg); }
-    }
 }

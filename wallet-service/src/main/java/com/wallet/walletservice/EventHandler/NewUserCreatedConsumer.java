@@ -1,4 +1,4 @@
-package com.wallet.walletservice.util;
+package com.wallet.walletservice.EventHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallet.walletservice.dto.UserCreatedEvent;
 import com.wallet.walletservice.service.WalletService;

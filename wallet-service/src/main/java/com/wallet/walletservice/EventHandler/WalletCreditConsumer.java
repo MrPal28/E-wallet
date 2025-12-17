@@ -1,7 +1,7 @@
-package com.wallet.walletservice.util;
+package com.wallet.walletservice.EventHandler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wallet.walletservice.dto.WalletDebitRequest;
+import com.wallet.walletservice.dto.WalletCreditRequest;
 import com.wallet.walletservice.service.WalletService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,37 +13,35 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class WalletDebitConsumer {
+public class WalletCreditConsumer {
 
     private final ObjectMapper mapper;
     private final WalletService walletService;
     private final KafkaEventPublisher kafkaEventPublisher;
 
-    private static final String IN_TOPIC = "wallet.debit.request";
-    private static final String DLQ_TOPIC = "wallet.debit.dlq";
+    private static final String IN_TOPIC = "wallet.credit.request";
+    private static final String DLQ_TOPIC = "wallet.credit.dlq";
 
     @KafkaListener(topics = IN_TOPIC, groupId = "wallet-service", concurrency = "4")
-    public void onDebit(ConsumerRecord<String, String> record, Acknowledgment ack) {
+    public void onCredit(ConsumerRecord<String, String> record, Acknowledgment ack) {
         try {
-            WalletDebitRequest request = mapper.readValue(record.value(), WalletDebitRequest.class);
-            log.info("→ Debit Request Received txnId={} amount={} user={} topic={}",
-                    request.getReferenceId(), request.getAmount(), request.getUserId(), record.topic());
+            WalletCreditRequest request = mapper.readValue(record.value(), WalletCreditRequest.class);
+            log.info("→ Credit Request txn={} user={} amount={}", request.getReferenceId(), request.getUserId(), request.getAmount());
 
-            walletService.debit(
+            walletService.credit(
                     request.getUserId(),
                     request.getAmount(),
                     request.getReferenceId(),
                     request.getReferenceType()
             );
 
-            ack.acknowledge(); // process complete
-            log.info("Debit Success txnId={} user={}", request.getReferenceId(), request.getUserId());
+            ack.acknowledge();
+            log.info("Credit Success for txn={} user={}", request.getReferenceId(), request.getUserId());
 
         } catch (Exception ex) {
-            log.error("Debit Failed txn={}, reason={}", record.key(), ex.getMessage());
-
+            log.error("Credit Failed reason: {}", ex.getMessage());
             kafkaEventPublisher.sendToDLQ(record.value(), DLQ_TOPIC);
-            ack.acknowledge(); // avoid infinite retry loop
+            ack.acknowledge();
         }
     }
 }

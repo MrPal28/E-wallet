@@ -1,4 +1,4 @@
-package com.wallet.walletservice.util;
+package com.wallet.walletservice.EventHandler;
 
 
 import lombok.RequiredArgsConstructor;

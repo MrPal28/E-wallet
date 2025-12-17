@@ -30,7 +30,7 @@ spring:
   kafka:
     consumer:
       bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
-      group-id: ${KAFKA_GROUP_ID:wallet-service}
+      group-id: ${KAFKA_GROUP_ID:wallet-service-group}
       auto-offset-reset: earliest
       enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -38,6 +38,11 @@ spring:
     listener:
       ack-mode: manual
       concurrency: ${KAFKA_CONSUMER_THREADS:3}
+    producer:
+      bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      
 
 server:
   port: ${PORT:8000}
