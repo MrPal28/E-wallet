@@ -11,10 +11,12 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class KafkaEventPublisher {
 
+    private static final String WALLET_DEBIT_DLQ = "wallet.debit.dlq";
+
     private final KafkaTemplate<String, String> kafka;
 
-    public void sendToDLQ(String topic, String payload) {
-        kafka.send(topic, payload);
-        log.warn("DLQ-ROUTED | topic={} | payload={}", topic, payload);
+    public void sendToDLQ(String payload) {
+        kafka.send(WALLET_DEBIT_DLQ, payload);
+        log.warn("DLQ-ROUTED | topic={} | payload={}", WALLET_DEBIT_DLQ, payload);
     }
 }

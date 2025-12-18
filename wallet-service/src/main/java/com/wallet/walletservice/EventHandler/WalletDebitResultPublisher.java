@@ -20,7 +20,8 @@ public class WalletDebitResultPublisher {
 
     private static final String TOPIC = "wallet.debit.result";
 
-    private final Optional<KafkaTemplate<String, Object>> kafkaTemplate;
+    private final Optional<KafkaTemplate<String, String>> kafkaTemplate;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     public void publish(
             Long userId,
@@ -35,22 +36,30 @@ public class WalletDebitResultPublisher {
             return;
         }
 
-        WalletDebitResultEvent event = WalletDebitResultEvent.builder()
-                .eventId(UUID.randomUUID().toString())
-                .referenceId(referenceId)
-                .userId(userId)
-                .debitedAmount(debitedAmount)
-                .remainingBalance(remainingBalance)
-                .status(status)
-                .failureReason(failureReason)
-                .occurredAt(Instant.now())
-                .build();
+        try {
+            WalletDebitResultEvent event = WalletDebitResultEvent.builder()
+                    .eventId(UUID.randomUUID().toString())
+                    .referenceId(referenceId)
+                    .userId(userId)
+                    .debitedAmount(debitedAmount)
+                    .remainingBalance(remainingBalance)
+                    .status(status)
+                    .failureReason(failureReason)
+                    .occurredAt(Instant.now())
+                    .build();
 
-        kafkaTemplate.get().send(TOPIC, referenceId, event);
+            String payload = objectMapper.writeValueAsString(event);
 
-        log.info(
-            "Published DEBIT result ref={} status={} remaining={}",
-            referenceId, status, remainingBalance
-        );
+            kafkaTemplate.get().send(TOPIC, referenceId, payload);
+
+            log.info(
+                "Published DEBIT result ref={} status={} remaining={}",
+                referenceId, status, remainingBalance
+            );
+
+        } catch (Exception ex) {
+            log.error("Failed to publish DEBIT result ref={}", referenceId, ex);
+            throw new RuntimeException("Kafka publish failed", ex);
+        }
     }
 }

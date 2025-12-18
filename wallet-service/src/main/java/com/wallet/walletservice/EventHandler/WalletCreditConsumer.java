@@ -20,7 +20,6 @@ public class WalletCreditConsumer {
     private final KafkaEventPublisher kafkaEventPublisher;
 
     private static final String IN_TOPIC = "wallet.credit.request";
-    private static final String DLQ_TOPIC = "wallet.credit.dlq";
 
     @KafkaListener(topics = IN_TOPIC, groupId = "wallet-service", concurrency = "4")
     public void onCredit(ConsumerRecord<String, String> record, Acknowledgment ack) {
@@ -40,7 +39,7 @@ public class WalletCreditConsumer {
 
         } catch (Exception ex) {
             log.error("Credit Failed reason: {}", ex.getMessage());
-            kafkaEventPublisher.sendToDLQ(record.value(), DLQ_TOPIC);
+            kafkaEventPublisher.sendToDLQ(record.value());
             ack.acknowledge();
         }
     }

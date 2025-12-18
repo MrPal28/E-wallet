@@ -32,13 +32,13 @@ public class TransactionServiceImpl implements TransactionService {
         String referenceId = UUID.randomUUID().toString();
         Instant now = Instant.now();
 
-        // 1. Persist INITIATED transaction
+        // 1️⃣ Persist INITIATED transaction
         Transaction tx = Transaction.builder()
                 .fromUserId(fromUser)
                 .toUserId(toUser)
                 .amount(amount)
                 .type(TransactionType.WALLET_TO_WALLET)
-                .status(TransactionStatus.INITIATED)
+                .status(TransactionStatus.INITIATED) // ✅ STAYS INITIATED
                 .referenceId(referenceId)
                 .createdAt(now)
                 .updatedAt(now)
@@ -47,7 +47,7 @@ public class TransactionServiceImpl implements TransactionService {
         repo.save(tx);
 
         try {
-            // 2. Publish debit request
+            // 2️⃣ Publish debit request (async)
             walletPublisher.debit(
                     WalletDebitRequest.builder()
                             .userId(fromUser)
@@ -59,22 +59,18 @@ public class TransactionServiceImpl implements TransactionService {
                             .build()
             );
 
-            // 3. Move to PROCESSING
-            tx.setStatus(TransactionStatus.PROCESSING);
-            tx.setUpdatedAt(Instant.now());
-            repo.save(tx);
+            // ❌ DO NOT change status here
 
         } catch (Exception ex) {
-            // 4. Mark transaction as FAILED
+            // 3️⃣ Only publish failure if event publish itself fails
             tx.setStatus(TransactionStatus.FAILED);
             tx.setFailureReason("DEBIT_EVENT_PUBLISH_FAILED");
             tx.setUpdatedAt(Instant.now());
             repo.save(tx);
-
             throw ex;
         }
 
-        // 5. Return ACK, not completion
+        // 4️⃣ Return ACK, not final result
         return TransactionResponse.from(tx);
     }
 
